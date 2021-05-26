@@ -71,7 +71,7 @@ def verify_user():
 app.route('/users/verify', methods=["GET"])(verify_user)
 
 def get_nearby():
-    #look up user
+    # #look up user
     decryted_id = jwt.decode(request.headers["Authorization"], os.environ.get('JWT_SECRET'), algorithms=["HS256"])['id']
     user = models.User.query.filter_by(id=decryted_id).first()
     #look up all users
@@ -79,17 +79,32 @@ def get_nearby():
     #find all zip codes within a 30 mile radius of user
     res = requests.get(f"https://api.zip-codes.com/ZipCodesAPI.svc/1.0/FindZipCodesInRadius?zipcode={user.zip}&minimumradius=0&maximumradius=30&country=ALL&key={os.environ.get('ZIP_KEY')}")
     users = []
-    #compare zips .. if user if within 30 miles of logged in user, append to users list
+    #compare zips .. if user is within 30 miles of logged in user, check to see if they are a match or a potential match, if they are not, append to users list
     for u in all_users:
         for r in res.json()['DataList']:
             if r['Code'] == u.zip and u.id != user.id:
-                users.append(u.to_json())
+                connected = False
+                for p in user.potential_matches:
+                    if p.user2_id == u.id:
+                        connected = True
+                        break
+                    else:
+                        for m in user.matches:
+                            if m.user1_id == u.id or m.user2_id == u.id:
+                                connected = True
+                                break
+                if connected == False:           
+                    users.append(u.to_json(dogs=True))
+                                
     #send back all users within 30 mile radius
+    # users=[]
+    # all_users = models.User.query.all()
+    # for user in all_users:
+    #     users.append(user.to_json(dogs=True))
+
     return{"users": "nearby users", "users": users}
 
 app.route('/users/nearby', methods=['GET'])(get_nearby)
-
-
 
 
 def create_potential():
@@ -119,7 +134,7 @@ def create_potential():
         user1.matches.append(new_match)
         user2.matches.append(new_match)
         models.db.session.commit()
-        return{"message":"users matched", "user": user1.to_json()}
+        return{"message":"users matched", "user": user1.to_json(matches=True)}
     # if only one wants to match, create potential match && associate it with logged in user
     else:
         new_potential_match = models.Potential_match(
@@ -187,11 +202,14 @@ def add_dog():
     return{"message": "dog added", "dog": dog.to_json()}
 app.route('/users/add-dog', methods=['POST'])(add_dog)
 
+
 def upload_dog_pic():
     #upload pic to cloudinary
     cloudinary.config(cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), api_key=os.getenv('CLOUDINARY_API_KEY'), api_secret=os.getenv('CLOUDINARY_API_SECRET'))
     res = cloudinary.uploader.upload(request.files['file'])
+    #look up doggo
     dog = models.Dog.query.filter_by(id=request.headers['dogId']).first()
+    # set image to url from cloudinary
     dog.image = res['url']
     models.db.session.add(dog)
     models.db.session.commit()

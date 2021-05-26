@@ -43,7 +43,8 @@ class User(db.Model):
                 "email": self.email,
                 "zip": self.zip,
                 "about": self.about,
-                "image": self.image
+                "image": self.image,
+                "potential_matches": [p.to_json() for p in self.potential_matches]
             }
 
 
