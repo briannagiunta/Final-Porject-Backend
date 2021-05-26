@@ -278,8 +278,6 @@ app.route('/users/dog/remove', methods=['PUT'])(remove_dog)
 
 
 
-
-
 from flask_socketio import SocketIO,send, join_room, leave_room
 
 socket_io = SocketIO(app, cors_allowed_origins="*")
@@ -293,6 +291,6 @@ def handleMessage(msg):
     return None
 
 if __name__ == '__main__':
-    # port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5000))
     # app.run(host='0.0.0.0', port=port, debug=True)
     socket_io.run(app)
