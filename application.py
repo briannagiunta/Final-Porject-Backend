@@ -152,7 +152,17 @@ def get_matches():
     decryted_id = jwt.decode(request.headers["Authorization"], os.environ.get('JWT_SECRET'), algorithms=["HS256"])['id']
     # return user with matches
     user = models.User.query.filter_by(id=decryted_id).first()
-    return{"matches": user.to_json(matches=True)}
+    matchArr = []
+    for match in user.matches:
+        if match.user1_id == user.id:
+            # matchArr.append(match.user2_id)
+            matchArr.append(models.User.query.filter_by(id=match.user2_id).first().to_json())
+        else:
+            # matchArr.append(match.user1_id)
+            matchArr.append(models.User.query.filter_by(id=match.user1_id).first().to_json())
+    
+    # return{"user": user.to_json(matches=True)}
+    return{"matches": matchArr}
 
 app.route('/users/matches', methods=['GET'])(get_matches)
 
@@ -258,5 +268,5 @@ def handleMessage(msg):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # app.run(host='0.0.0.0', port=port, debug=True)
     socket_io.run(app)
