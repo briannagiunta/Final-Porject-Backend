@@ -286,11 +286,11 @@ socket_io = SocketIO(app, cors_allowed_origins="*")
 app.debug=True
 app.host = 'localhost'
 
-# @socket_io.on("message")
-# def handleMessage(msg):
-#     print(msg)
-#     send(msg, broadcast=True)
-#     return None
+@socket_io.on("message")
+def handleMessage(msg):
+    print(msg)
+    send(msg, broadcast=True)
+    return None
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
