@@ -15,6 +15,8 @@ class User(db.Model):
     dogs = db.relationship('Dog', backref='user')
     potential_matches = db.relationship('Potential_match', backref='user')
     matches = db.relationship('Match', secondary='user_matches', backref='users')
+    chats = db.relationship('Chat', secondary='user_chats', backref='users')
+
     def to_json(self, dogs=False, matches=False):
         if dogs:
             return {
@@ -34,7 +36,8 @@ class User(db.Model):
                 "zip": self.zip,
                 "about": self.about,
                 "image": self.image,
-                "matches": [m.to_json() for m in self.matches]
+                "matches": [m.to_json() for m in self.matches],
+                "chats": [c.to_json() for c in self.chats]
             }
         else:
             return {
@@ -107,4 +110,45 @@ class User_matches(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "match_id": self.match_id
+        }
+
+class Chat(db.Model):
+    __tablename__ = 'chats'
+    id = db.Column(db.Integer, primary_key=True)
+    user1_id = db.Column(db.Integer)
+    user2_id = db.Column(db.Integer)
+    messages = db.relationship('Message', backref='chat')
+    def to_json(self):
+        return{
+            "id": self.id,
+            "user1_id": self.user1_id,
+            "user2_id": self.user2_id,
+            "messages": [m.to_json() for m in self.messages]
+        }
+
+
+class User_chats(db.Model):
+    __tablename__ = 'user_chats'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    chat_id = db.Column(db.Integer, db.ForeignKey('chats.id'))
+    def to_json(self):
+        return{
+            "id": self.id,
+            "user_id": self.user_id,
+            "chat_id": self.chat_id
+        }
+
+class Message(db.Model):
+    __tablename__ = 'messages'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    chat_id = db.Column(db.Integer, db.ForeignKey('chats.id'))
+    content = db.Column(db.String)
+    def to_json(self):
+        return{
+            "id": self.id,
+            "user_id": self.user_id,
+            "chat_id": self.chat_id,
+            "content": self.content
         }

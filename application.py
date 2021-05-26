@@ -130,9 +130,16 @@ def create_potential():
             user1_id = user1.id,
             user2_id = user2.id
         )
+        new_chat = models.Chat(
+            user1_id = user1.id,
+            user2_id = user2.id
+        )
         models.db.session.add(new_match)
+        models.db.session.add(new_chat)
         user1.matches.append(new_match)
         user2.matches.append(new_match)
+        user1.chats.append(new_chat)
+        user2.chats.append(new_chat)
         models.db.session.commit()
         return{"message":"users matched", "user": user1.to_json(matches=True)}
     # if only one wants to match, create potential match && associate it with logged in user
@@ -150,21 +157,40 @@ app.route('/users/potential', methods=['POST'])(create_potential)
 def get_matches():
     #look up user
     decryted_id = jwt.decode(request.headers["Authorization"], os.environ.get('JWT_SECRET'), algorithms=["HS256"])['id']
-    # return user with matches
     user = models.User.query.filter_by(id=decryted_id).first()
-    matchArr = []
-    for match in user.matches:
-        if match.user1_id == user.id:
-            # matchArr.append(match.user2_id)
-            matchArr.append(models.User.query.filter_by(id=match.user2_id).first().to_json())
+    # look through user chats and find info for everyone user has a chat with 
+    chatArr = []
+    for chat in user.chats:
+        if chat.user1_id == user.id:
+            chatArr.append({"chat": chat.to_json(), "user": models.User.query.filter_by(id=chat.user2_id).first().to_json()})
         else:
-            # matchArr.append(match.user1_id)
-            matchArr.append(models.User.query.filter_by(id=match.user1_id).first().to_json())
+            chatArr.append({"chat": chat.to_json(), "user": models.User.query.filter_by(id=chat.user1_id).first().to_json()})
     
-    # return{"user": user.to_json(matches=True)}
-    return{"matches": matchArr}
-
+    return{"matches": chatArr}
 app.route('/users/matches', methods=['GET'])(get_matches)
+
+def get_messages():
+    chat = models.Chat.query.filter_by(id=request.json['chat_id']).first()
+    return{"chat": chat.to_json()}
+app.route('/chat/messages', methods=['POST'])(get_messages)
+
+def send_message():
+    decryted_id = jwt.decode(request.headers["Authorization"], os.environ.get('JWT_SECRET'), algorithms=["HS256"])['id']
+    user = models.User.query.filter_by(id=decryted_id).first()
+    chat = models.Chat.query.filter_by(id=request.json['chat_id']).first()
+    message = models.Message(
+        user_id = user.id,
+        content = request.json['content']
+    )
+    models.db.session.add(message)
+    chat.messages.append(message)
+    models.db.session.commit()
+    return{"message": "message sent", "chat": chat.to_json()}
+app.route('/chat/send/message', methods=['POST'])(send_message)
+
+
+
+
 
 
 def upload_profile_pic():
@@ -254,17 +280,17 @@ app.route('/users/dog/remove', methods=['PUT'])(remove_dog)
 
 
 
-from flask_socketio import SocketIO,send
+from flask_socketio import SocketIO,send, join_room, leave_room
 
 socket_io = SocketIO(app, cors_allowed_origins="*")
 app.debug=True
 app.host = 'localhost'
 
-@socket_io.on("message")
-def handleMessage(msg):
-    print(msg)
-    send(msg, broadcast=True)
-    return None
+# @socket_io.on("message")
+# def handleMessage(msg):
+#     print(msg)
+#     send(msg, broadcast=True)
+#     return None
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
