@@ -1,3 +1,4 @@
+from flask_socketio import SocketIO,send, join_room, leave_room
 import models
 from dotenv import load_dotenv
 import os
@@ -17,6 +18,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 load_dotenv()
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('postgres', 'postgresql')
+
 
 models.db.init_app(app)
 
@@ -278,7 +280,6 @@ app.route('/users/dog/remove', methods=['PUT'])(remove_dog)
 
 
 
-from flask_socketio import SocketIO,send, join_room, leave_room
 
 socket_io = SocketIO(app, cors_allowed_origins="*")
 app.debug=True
