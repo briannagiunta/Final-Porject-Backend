@@ -284,7 +284,7 @@ from flask_socketio import SocketIO,send, join_room, leave_room
 
 socket_io = SocketIO(app, cors_allowed_origins="*")
 app.debug=True
-app.host = '0.0.0.0'
+app.host = 'localhost'
 
 @socket_io.on("message")
 def handleMessage(msg):
