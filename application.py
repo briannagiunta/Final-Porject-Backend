@@ -191,10 +191,6 @@ def send_message():
 app.route('/chat/send/message', methods=['POST'])(send_message)
 
 
-
-
-
-
 def upload_profile_pic():
     #look up user
     decryted_id = jwt.decode(request.headers["Authorization"], os.environ.get('JWT_SECRET'), algorithms=["HS256"])['id']
@@ -286,8 +282,20 @@ app.debug=True
 app.host = 'localhost'
 
 @socket_io.on("message")
-def handleMessage(msg):
+def handleMessage(msg, userId, chatId):
     print(msg)
+    print(userId)
+    print(chatId)
+    decryted_id = jwt.decode(userId, os.environ.get('JWT_SECRET'), algorithms=["HS256"])['id']
+    user = models.User.query.filter_by(id=decryted_id).first()
+    chat = models.Chat.query.filter_by(id=chatId).first()
+    message = models.Message(
+        user_id = user.id,
+        content = msg
+    )
+    models.db.session.add(message)
+    chat.messages.append(message)
+    models.db.session.commit()
     send(msg, broadcast=True)
     return None
 
