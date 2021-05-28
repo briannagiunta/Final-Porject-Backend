@@ -209,11 +209,12 @@ def about_me():
     #look up user
     decryted_id = jwt.decode(request.headers["Authorization"], os.environ.get('JWT_SECRET'), algorithms=["HS256"])['id']
     user = models.User.query.filter_by(id=decryted_id).first()
-    #set about column to whatever was sent 
+    #set about column to whatever was sent
+    user.name = request.json['name'] 
     user.about = request.json['about']
     models.db.session.add(user)
     models.db.session.commit()
-    return{"message":"SUCCESS! about me updated", "user": user.to_json()}
+    return{"message":"about me updated", "user": user.to_json(dogs=True)}
 app.route('/users/about', methods=['POST'])(about_me)
 
 
@@ -274,18 +275,12 @@ def remove_dog():
 app.route('/users/dog/remove', methods=['PUT'])(remove_dog)
 
 
-
-
-
 socket_io = SocketIO(app, cors_allowed_origins="*")
 app.debug=True
 app.host = 'localhost'
 
 @socket_io.on("message")
 def handleMessage(msg, userId, chatId):
-    print(msg)
-    print(userId)
-    print(chatId)
     decryted_id = jwt.decode(userId, os.environ.get('JWT_SECRET'), algorithms=["HS256"])['id']
     user = models.User.query.filter_by(id=decryted_id).first()
     chat = models.Chat.query.filter_by(id=chatId).first()
